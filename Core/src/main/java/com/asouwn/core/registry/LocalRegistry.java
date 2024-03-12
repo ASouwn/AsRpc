@@ -14,7 +14,7 @@ public class LocalRegistry {
      * @param service 服务名
      * @param implClass 实现类
      */
-    public static void registry(String service, Class<?> implClass){
+    public static void register(String service, Class<?> implClass){
         m.put(service, implClass);
     }
 
@@ -22,7 +22,7 @@ public class LocalRegistry {
      * 删除服务
      * @param service 服务名
      */
-    public static void disRegistry(String service){
+    public static void disRegister(String service){
         m.remove(service);
     }
 

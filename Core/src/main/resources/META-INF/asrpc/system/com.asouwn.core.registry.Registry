@@ -1,0 +1,1 @@
+etcd=com.asouwn.core.registry.EtcdRegistry

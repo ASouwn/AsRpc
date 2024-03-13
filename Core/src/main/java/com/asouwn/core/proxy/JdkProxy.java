@@ -4,8 +4,9 @@ import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import com.asouwn.core.model.AsRpcRequest;
 import com.asouwn.core.model.AsRpcResponse;
-import com.asouwn.core.serializer.JdkSerializer;
 import com.asouwn.core.serializer.Serializer;
+import com.asouwn.core.serializer.SerializerFactory;
+import com.asouwn.core.serializer.SerializerKeys;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
@@ -19,7 +20,7 @@ public class JdkProxy implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) {
 //        指定序列器
-        final Serializer serializer = new JdkSerializer();
+        final Serializer serializer = SerializerFactory.getInstance(SerializerKeys.HESSIAN);
 
 //        构建申请包并序列化
         AsRpcRequest request = AsRpcRequest.builder()

@@ -1,130 +1,89 @@
 package com.asouwn.core.spi;
 
 import cn.hutool.core.io.resource.ResourceUtil;
-import com.asouwn.core.serializer.Serializer;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-@Slf4j
+/**
+ * Spi加载器，从配置从读取到实例
+ * 因为是自定义，需要在多个实例中作先择，则配置中不再是单纯存在实现类，还要有对应的key
+ * 则在接口名的配置=>(key => 实现类）
+ */
 public class SpiLoader {
     /**
-     * 存储已加载的类：接口名 =>（key => 实现类）
+     * 存储已加载的 接口 => （key => 实现类）
      */
-    private static final Map<String, Map<String, Class<?>>> loaderMap = new ConcurrentHashMap<>();
-
+    private static final Map<String, Map<String, Class<?>>> loadMap = new ConcurrentHashMap<>();
     /**
-     * 对象实例缓存（避免重复 new），类路径 => 对象实例，单例模式
+     * 存储（实现 => 实现类的实例）
      */
     private static final Map<String, Object> instanceCache = new ConcurrentHashMap<>();
-
     /**
-     * 系统 SPI 目录
+     * 默认路径
      */
-    private static final String RPC_SYSTEM_SPI_DIR = "META-INF/asrpc/system/";
+    private static final String PRE_SERIALIZER_DIR = "META-INF/asrpc/";
 
     /**
-     * 用户自定义 SPI 目录
-     */
-    private static final String RPC_CUSTOM_SPI_DIR = "META-INF/asrpc/custom/";
-
-    /**
-     * 扫描路径
-     */
-    private static final String[] SCAN_DIRS = new String[]{RPC_SYSTEM_SPI_DIR, RPC_CUSTOM_SPI_DIR};
-
-    /**
-     * 动态加载的类列表
-     */
-    private static final List<Class<?>> LOAD_CLASS_LIST = Arrays.asList(Serializer.class);
-
-    /**
-     * 加载所有类型
-     */
-    public static void loadAll() {
-        log.info("加载所有 SPI");
-        for (Class<?> aClass : LOAD_CLASS_LIST) {
-            load(aClass);
-        }
-    }
-
-    /**
-     * 获取某个接口的实例
-     *
-     * @param tClass
-     * @param key
-     * @param <T>
+     * 从配置从加载到所有类对象
+     * @param loadInterface
      * @return
      */
-    public static <T> T getInstance(Class<?> tClass, String key) {
-        String tClassName = tClass.getName();
-//        先在已经加载的Map中寻找
-        Map<String, Class<?>> keyClassMap = loaderMap.get(tClassName);
-        if (keyClassMap == null) {
-            throw new RuntimeException(String.format("SpiLoader 未加载 %s 类型", tClassName));
-        }
-        if (!keyClassMap.containsKey(key)) {
-            throw new RuntimeException(String.format("SpiLoader 的 %s 不存在 key=%s 的类型", tClassName, key));
-        }
-        // 获取到要加载的实现类型
-        Class<?> implClass = keyClassMap.get(key);
-        // 从实例缓存中加载指定类型的实例
-        String implClassName = implClass.getName();
-        if (!instanceCache.containsKey(implClassName)) {
-            try {
-                instanceCache.put(implClassName, implClass.newInstance());
-            } catch (InstantiationException | IllegalAccessException e) {
-                String errorMsg = String.format("%s 类实例化失败", implClassName);
-                throw new RuntimeException(errorMsg, e);
-            }
-        }
-        return (T) instanceCache.get(implClassName);
-    }
-
-    /**
-     * 加载某个类型
-     *
-     * @param loadClass
-     * @throws IOException
-     */
-    public static Map<String, Class<?>> load(Class<?> loadClass) {
-        log.info("加载类型为 {} 的 SPI", loadClass.getName());
-        // 扫描路径，用户自定义的 SPI 优先级高于系统 SPI
+    public static Map<String, Class<?>> load(Class<?> loadInterface){
+        String scanDir = PRE_SERIALIZER_DIR+loadInterface.getName();
+        List<URL> resources = ResourceUtil.getResources(scanDir);
         Map<String, Class<?>> keyClassMap = new HashMap<>();
-        for (String scanDir : SCAN_DIRS) {
-            List<URL> resources = ResourceUtil.getResources(scanDir + loadClass.getName());
-            // 读取每个资源文件
-            for (URL resource : resources) {
-                try {
-                    InputStreamReader inputStreamReader = new InputStreamReader(resource.openStream());
-                    BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-                    String line;
-                    while ((line = bufferedReader.readLine()) != null) {
-                        String[] strArray = line.split("=");
-                        if (strArray.length > 1) {
-                            String key = strArray[0];
-                            String className = strArray[1];
-                            keyClassMap.put(key, Class.forName(className));
-                        }
+        for (URL resource: resources){
+            try {
+                InputStreamReader inputStreamReader = new InputStreamReader(resource.openStream());
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    String[] split = line.split("=");
+                    if (split.length > 1){
+                        String key = split[0];
+                        String value = split[1];
+                        keyClassMap.put(key, Class.forName(value));
                     }
-                } catch (Exception e) {
-                    log.error("spi resource load error", e);
                 }
+            } catch (IOException | ClassNotFoundException e) {
+                throw new RuntimeException(e);
             }
         }
-        loaderMap.put(loadClass.getName(), keyClassMap);
+        loadMap.put(loadInterface.getName(), keyClassMap);
         return keyClassMap;
     }
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
-        loadAll();
-        System.out.println(loaderMap);
-        Serializer serializer = getInstance(Serializer.class, "jdk");
-        System.out.println(serializer);
+    /**
+     * 获取实例
+     * @param loadInterface
+     * @param key
+     * @return
+     * @param <T>
+     */
+    public static <T> T getInstance(Class<?> loadInterface, String key){
+        Map<String, Class<?>> keyClassMap = loadMap.get(loadInterface.getName());
+        if (keyClassMap.isEmpty())
+            System.out.println(String.format("SpiLoader 未存在 %s 类型", loadInterface.getName()));
+        if (!keyClassMap.containsKey(key))
+            System.out.println(String.format("SpiLoader %s 中未存在 %s 的实现类", loadInterface, key));
+        Class<?> implClass = keyClassMap.get(key);
+
+        if (!instanceCache.containsKey(implClass.getName()))
+            try {
+//                instanceCache.put(implClass.getName(),implClass.newInstance()); 在java9后禁用
+                instanceCache.put(implClass.getName(), implClass.getDeclaredConstructor().newInstance());
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
+                     NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
+        return (T) instanceCache.get(implClass.getName());
     }
 }

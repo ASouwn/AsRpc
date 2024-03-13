@@ -12,7 +12,7 @@ public class Example {
         User asouwn = User.builder().name("asouwn").build();
         User getUser = userServer.getUser(asouwn);
         if (getUser != null)
-            System.out.println("get the user successfully "+ getUser.getName());
+            System.out.println("get the user successfully: "+ getUser.getName());
         else System.out.println("cannot get the user");
     }
 }

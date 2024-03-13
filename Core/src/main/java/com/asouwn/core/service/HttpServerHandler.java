@@ -3,8 +3,9 @@ package com.asouwn.core.service;
 import com.asouwn.core.model.AsRpcRequest;
 import com.asouwn.core.model.AsRpcResponse;
 import com.asouwn.core.registry.LocalRegistry;
-import com.asouwn.core.serializer.JdkSerializer;
 import com.asouwn.core.serializer.Serializer;
+import com.asouwn.core.serializer.SerializerFactory;
+import com.asouwn.core.serializer.SerializerKeys;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
@@ -18,7 +19,7 @@ public class HttpServerHandler implements Handler<HttpServerRequest> {
     @Override
     public void handle(HttpServerRequest httpServerRequest) {
 //        指定序列器并反序列化得到的申请
-        final Serializer serializer = new JdkSerializer();
+        final Serializer serializer = SerializerFactory.getInstance(SerializerKeys.HESSIAN);
 
         httpServerRequest.bodyHandler(body->{
 

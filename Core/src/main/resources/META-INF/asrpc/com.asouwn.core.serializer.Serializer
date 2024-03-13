@@ -1,0 +1,2 @@
+jdk=com.asouwn.core.serializer.JdkSerializer
+hessian=com.asouwn.core.serializer.HessianSerializer

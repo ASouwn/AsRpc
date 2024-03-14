@@ -19,7 +19,7 @@ public class HttpServerHandler implements Handler<HttpServerRequest> {
     @Override
     public void handle(HttpServerRequest httpServerRequest) {
 //        指定序列器并反序列化得到的申请
-        final Serializer serializer = SerializerFactory.getInstance(SerializerKeys.HESSIAN);
+        final Serializer serializer = SerializerFactory.getInstance(SerializerKeys.JDK);
 
         httpServerRequest.bodyHandler(body->{
 

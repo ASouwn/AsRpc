@@ -20,7 +20,7 @@ public class JdkProxy implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) {
 //        指定序列器
-        final Serializer serializer = SerializerFactory.getInstance(SerializerKeys.HESSIAN);
+        final Serializer serializer = SerializerFactory.getInstance(SerializerKeys.JDK);
 
 //        构建申请包并序列化
         AsRpcRequest request = AsRpcRequest.builder()

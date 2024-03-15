@@ -40,11 +40,10 @@ public class ETCDRegistry {
         String preSearchKey = PreFixDir + serverMetaInfo.getPreKey();
         ByteSequence preKey = ByteSequence.from(preSearchKey, StandardCharsets.UTF_8);
         List<KeyValue> keyValueList = kvClient.get(preKey).get().getKvs();
-        List<ServerMetaInfo> values = keyValueList.stream().map(keyValue -> {
+        return keyValueList.stream().map(keyValue -> {
             String value = keyValue.getValue().toString(StandardCharsets.UTF_8);
             return JSONUtil.toBean(value, ServerMetaInfo.class);
         }).collect(Collectors.toList());
-        return values;
     }
     public void remove(ServerMetaInfo serverMetaInfo){
         ByteSequence key = ByteSequence.from(PreFixDir+serverMetaInfo.getPreKey(), StandardCharsets.UTF_8);

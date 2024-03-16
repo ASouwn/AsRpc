@@ -9,6 +9,7 @@ import com.asouwn.core.config.RegistryConfig;
 import com.asouwn.core.model.ServerMetaInfo;
 import io.etcd.jetcd.*;
 import io.etcd.jetcd.options.GetOption;
+import io.etcd.jetcd.options.PutOption;
 import io.etcd.jetcd.watch.WatchEvent;
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,7 +53,11 @@ public class ETCDRegistry {
         String keyDir = PreFixDir+serverMetaInfo.getKey();
         ByteSequence key = ByteSequence.from(keyDir, StandardCharsets.UTF_8);
         ByteSequence value = ByteSequence.from(JSONUtil.toJsonStr(serverMetaInfo), StandardCharsets.UTF_8);
-        kvClient.put(key, value).get();
+        Lease lease = client.getLeaseClient();
+        long leaseId = lease.grant(30).get().getID();
+        PutOption putOption = PutOption.builder().withLeaseId(leaseId).build();
+
+        kvClient.put(key, value, putOption).get();
 //        成功注册后就放入key本地缓存
         nodeKeySet.add(keyDir);
     }

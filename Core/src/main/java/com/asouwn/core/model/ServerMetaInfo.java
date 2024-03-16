@@ -23,10 +23,10 @@ public class ServerMetaInfo {
 
     /**
      * 前置搜索的key关键词
-     * @return serviceName:serviceVision
+     * @return serviceName/serviceVision
      */
     public String getPreKey(){
-        return String.format("%s:%s", serviceName, serviceVision);
+        return String.format("%s/%s", serviceName, serviceVision);
     }
 
     /**
